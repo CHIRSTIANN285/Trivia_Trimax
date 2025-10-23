@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trivia TRIMAX — Registro + Premios</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#111827; --muted:#9ca3af; --ink:#e5e7eb;
+    --accent:#22d3ee; --accent-2:#a78bfa; --good:#34d399; --bad:#f87171; --gold:#fbbf24;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:grid; place-items:center;
+    background: radial-gradient(1200px 600px at 10% -10%, #1f2937 0%, transparent 60%),
+                radial-gradient(900px 400px at 110% 110%, #1f2937 0%, transparent 60%),
+                var(--bg);
+    color:var(--ink); font-family: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
+  }
+  .wrap{
+    width:min(980px,94vw);
+    padding:28px;
+    padding-top:160px; /* espacio para logo + búho */
+    border-radius:22px;
+    background:linear-gradient(180deg,#0b1220 0%, #0b1220a6 100%), var(--card);
+    box-shadow:0 30px 60px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    position:relative; overflow:hidden;
+  }
+
+  /* ===== LOGOTIPO (centrado arriba) ===== */
+  .logo{
+    position:absolute; left:50%; top:20px; transform:translateX(-50%);
+    max-width:min(60%,360px); height:auto;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.35));
+    pointer-events:none; user-select:none;
+  }
+
+  h1{margin:0 0 8px; font-size:clamp(20px,3vw,28px); font-weight:700; letter-spacing:.2px}
+  .sub{color:var(--muted); margin-bottom:18px; font-size:14px}
+  .row{display:flex; gap:14px; align-items:center; justify-content:space-between}
+
+  /* ===== BÚHO (ping-pong) ===== */
+  .mascot{
+    position:absolute; right:56px; top:18px; width:clamp(82px, 15vw, 116px);
+    z-index:2; pointer-events:none; filter: drop-shadow(0 12px 22px rgba(0,0,0,.35));
+    --x: 0px; --dir: 1;
+    transform: translateX(var(--x)) scaleX(var(--dir));
+    transform-origin: 50% 18%;
+  }
+  .mascot.walking{ animation: walk-bob .6s ease-in-out infinite; }
+  @keyframes walk-bob{0%,100%{transform:translateX(var(--x)) scaleX(var(--dir)) translateY(0)}50%{transform:translateX(var(--x)) scaleX(var(--dir)) translateY(-4px)}}
+  .mascot::after{content:""; position:absolute; left:10%; bottom:-6px; width:80%; height:10px;
+    background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.35), rgba(0,0,0,0));
+    filter: blur(2px); pointer-events:none;
+    transform: translateX(calc(var(--x))) scaleX(var(--dir));
+  }
+
+  .cover{display:grid; gap:18px}
+  .grid{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+  .field{display:grid; gap:6px}
+  .label{font-size:13px; color:var(--muted)}
+  .input, .select{
+    width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.10);
+    background:#0a0f1a; color:var(--ink); outline:none;
+  }
+  .input:focus, .select:focus{border-color:rgba(34,211,238,.55)}
+  .prizes{display:grid; grid-template-columns: 1fr 1fr; gap:14px}
+  .prize{position:relative; padding:18px; border-radius:16px; background:linear-gradient(180deg,#0b1220 0%, #0b1220a6 100%); border:1px solid rgba(255,255,255,.08)}
+  .prize h3{margin:0 0 6px; font-size:18px}
+  .badge{position:absolute; top:14px; right:14px; font-size:12px; padding:4px 10px; border-radius:999px; background:rgba(251,191,36,.18); color:#eab308; border:1px solid rgba(251,191,36,.25)}
+  .cta{ display:flex; justify-content:center; margin-top:8px; }
+  .btn{appearance:none; border:0; border-radius:14px; padding:14px 20px; font-weight:800; letter-spacing:.4px; cursor:pointer; text-transform:uppercase; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#06101a; box-shadow:0 12px 26px rgba(34,211,238,.25)}
+  .hint{color:var(--muted); font-size:12px; text-align:center; margin-top:6px}
+
+  .hidden{display:none !important}
+  .timer{margin:10px 0 16px; height:10px; border-radius:999px; background:#1f2937; overflow:hidden}
+  .bar{height:100%; width:100%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transform-origin:left center; transform:scaleX(1); transition:transform .2s linear;}
+  .meta{display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px}
+  .pill{padding:6px 10px; border:1px solid rgba(255,255,255,.12); border-radius:999px}
+  .card{padding:16px; border-radius:16px; background:#0b1220; border:1px solid rgba(255,255,255,.06)}
+  .q{font-size:18px; line-height:1.35; margin:0 0 10px}
+  .opts{display:grid; gap:10px; margin:10px 0 16px}
+  label.opt{display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:12px; cursor:pointer; background:#0a0f1a; border:1px solid rgba(255,255,255,.08)}
+  label.opt:hover{border-color:rgba(255,255,255,.18)}
+  input[type="radio"]{accent-color:#22d3ee; transform:translateY(3px)}
+  .footer{display:flex; gap:10px; justify-content:flex-end; margin-top:14px}
+  .score{font-size:18px; margin:10px 0 18px}
+  .lst{list-style:none; padding:0; margin:0; display:grid; gap:12px}
+  .it{padding:12px; border-radius:14px; background:#0b1220; border:1px solid rgba(255,255,255,.06)}
+  .ok{border-color: rgba(52,211,153,.35)} .bad{border-color: rgba(248,113,113,.35)}
+  .tag{font-size:12px; padding:2px 8px; border-radius:999px; margin-left:8px; color:#052; background:rgba(52,211,153,.25)}
+  .tag.bad{background:rgba(248,113,113,.25); color:#320}
+  .mut{color:var(--muted)}
+  .result-header{margin:6px 0 18px; padding:14px 16px; border-radius:16px; background:linear-gradient(180deg,#0b1220 0%, #0b1220a6 100%); border:1px solid rgba(255,255,255,.08)}
+  .result-title{ margin:0 0 4px; font-size:22px; font-weight:800; letter-spacing:.2px }
+  .result-sub{ margin:0; color:var(--muted) }
+  .coupon{ margin-top:12px; background:#fff; color:#111; border-radius:14px; padding:14px 16px; border:2px dashed #0b1220; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .coupon .code{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-weight:800; font-size:18px; letter-spacing:1.2px; }
+  .coupon .label{ font-size:12px; color:#374151 }
+
+  /* Firma fija en resultados (esquina inferior derecha) */
+  .firma{
+    position:fixed; right:18px; bottom:18px; max-width:520px;
+    display:none; /* se muestra sólo al finalizar */
+    z-index:5;
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <!-- LOGOTIPO CENTRADO SUPERIOR -->
+    <img src="LOGOTIPO.png" alt="Logo TRIMAX" class="logo" />
+
+    <!-- BÚHO -->
+    <img src="Buho.png.png" alt="Búho TRIMAX" id="mascot" class="mascot" />
+
+    <!-- Música -->
+    <audio id="bgm" src="trivia.mp3" preload="auto" loop></audio>
+
+    <h1>TRIVIA TRIMAX</h1>
+    <div class="sub">Regístrate, revisa los premios y… ¡a jugar!</div>
+
+    <section id="cover" class="cover">
+      <div class="grid">
+        <div class="field">
+          <label class="label" for="inpNombre">Nombre y Apellido</label>
+          <input id="inpNombre" class="input" type="text" placeholder="Tu nombre y apellido" autocomplete="name" />
+        </div>
+        <div class="field">
+          <label class="label" for="inpDni">DNI</label>
+          <input id="inpDni" class="input" type="text" placeholder="Ej. 12345678" maxlength="12" />
+        </div>
+      </div>
+      <div class="field">
+        <label class="label" for="selSede">Sede</label>
+        <select id="selSede" class="select">
+          <option value="">Selecciona tu sede…</option>
+          <option>AREQUIPA</option><option>ATE</option><option>AYACUCHO</option><option>CAILLOMA</option>
+          <option>CAJAMARCA</option><option>CALL CENTER</option><option>CHICLAYO</option><option>CHIMBOTE</option>
+          <option>COMAS</option><option>CUSCO</option><option>HUANCAYO</option><option>HUÁNUCO</option>
+          <option>HUARAZ</option><option>ICA</option><option>IQUITOS</option><option>LINCE</option>
+          <option>LOS OLIVOS</option><option>NAPO</option><option>PIURA</option><option>PUCALLPA</option>
+          <option>PUENTE PIEDRA</option><option>SJL</option><option>SJM</option><option>TACNA</option><option>TRUJILLO</option>
+        </select>
+      </div>
+
+      <div class="prizes">
+        <article class="prize"><span class="badge">Meta</span><h3>🏆 20% en Montura Internacional</h3><div class="req">Se obtiene con <b>20 puntos</b>.</div></article>
+        <article class="prize"><span class="badge">Meta</span><h3>🎖️ 15% de Descuento</h3><div class="req">Se obtiene con <b>16 puntos</b>.</div></article>
+      </div>
+
+      <div class="cta"><button id="startBtn" class="btn">EMPEZAR TRIVIA TRIMAX</button></div>
+      <div class="hint">Cada acierto suma 4 puntos. Son 5 preguntas · 15 segundos cada una.</div>
+    </section>
+
+    <section id="hud" class="row hidden" aria-live="polite">
+      <div class="meta">
+        <div class="pill"><span id="counter">Pregunta 1 de 5</span></div>
+        <div class="pill">Tiempo: <b id="secs">15</b>s</div>
+        <div class="pill">Puntaje: <b id="points">0</b></div>
+        <div class="pill" id="playerTag"></div>
+      </div>
+      <!-- Eliminamos botón reiniciar de aquí (se manejaba en resultados) -->
+    </section>
+
+    <div id="timer" class="timer hidden"><div id="bar" class="bar"></div></div>
+
+    <section id="stage" class="card hidden">
+      <h2 id="q" class="q">...</h2>
+      <div id="opts" class="opts"></div>
+      <div class="footer"><button id="answerBtn" class="btn" disabled>Contestar</button></div>
+    </section>
+
+    <section id="results" class="hidden">
+      <div id="resultHeader" class="result-header">
+        <h2 id="resultTitle" class="result-title">Resultado</h2>
+        <p id="resultSub" class="result-sub"></p>
+        <div id="couponBox" class="coupon hidden">
+          <div class="label">CUPÓN:</div>
+          <div id="couponCode" class="code">TRX-...</div>
+        </div>
+      </div>
+      <div class="score"><strong>Puntaje:</strong> <span id="finalScore">0</span> puntos de 20.</div>
+      <ul id="review" class="lst"></ul>
+
+      <!-- Nuevo botón: Salir (vuelve a la pantalla principal y limpia) -->
+      <div style="display:flex;justify-content:center;margin-top:18px;">
+        <button id="exitBtn" class="btn hidden">Salir</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firma fija: solo visible al terminar -->
+  <div id="firma" class="firma">
+    <div style="display:flex;align-items:center;border-left:5px solid #004aad;padding:14px 16px;font-family:Segoe UI,Arial,sans-serif;background:#0b1220;border-radius:12px;border:1px solid rgba(255,255,255,.08);box-shadow:0 10px 24px rgba(0,0,0,.35);">
+      <div>
+        <h3 style="margin:0 0 4px;color:#89b4ff;font-size:16px;">Equipo de Inteligencia Comercial y Planeamiento</h3>
+        <p style="margin:0;color:#cbd5e1;">TRIMAX – Global Mega S.A.C.</p>
+        <p style="margin:8px 0;color:#60a5fa;">📊 Data Driven | Insight Focused | Business Ready</p>
+        <p style="margin:0;line-height:1.6;color:#e2e8f0;">
+          📞 <a href="tel:+51997971220" style="color:#93c5fd;text-decoration:none;">997 971 220</a><br>
+          📧 <a href="mailto:planeamiento.comercial@trimaxperu.com" style="color:#93c5fd;text-decoration:none;">planeamiento.comercial@trimaxperu.com</a><br>
+          📍 Jr. Napo 171, Breña – Lima, Perú<br>
+          🌐 <a href="https://www.trimaxperu.com" style="color:#93c5fd;text-decoration:none;">www.trimaxperu.com</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ===== CONFIG ===== */
+const TIME_PER_Q = 15, POINTS_PER_OK = 4;
+
+/* ===== URL DE TU SHEET (Apps Script WebApp) - reemplaza si hace falta ===== */
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxsh9JUuzsLZoqIOaUjgK3P3uITS460schC3hefzPt2T7nFwGIiko0S_cZfSPWtYlM_OQ/exec';
+
+/* ==== PREGUNTAS INCRUSTADAS (tu Base64 con BOM) ==== */
+const EMBEDDED_BASE64 =
+`77u/UHJlZ3VudGE7QTtCO0M7RDtDb3JyZWN0YQ0Kwr9DdcOhbCBlcyBlbCBzZWd1bmRvIG5vbWJyZSBkZWwgR2VyZW50ZSBHZW5lcmFsPztBbmRyw6lzO1J1YsOpbjtWaWN0b3Jpbm87VsOtY3RvcjtWw61jdG9yDQrCv0N1w6FudG9zIGHDsW9zIGN1bXBsZSBUUklNQVg/OzIxIGHDsW9zOzE5IGHDsW9zOzIwIGHDsW9zOzIyIGHDsW9zOzIwIGHDsW9zDQrCv0N1w6FsIGRlIGxhcyBzaWd1aWVudGVzIG1hcmNhcyBubyBwZXJ0ZW5lY2UgYWwgcG9ydGFmb2xpbyBkZSBUUklNQVg/O1BFTlRBWDtIT1lBO0FESURBUztTSEFNSVI7U0hBTUlSDQrCv1RlbmVtb3Mgc2VkZSBlbiBDYWphbWFyY2E/O1PDrTtObztUYWwgVmV6O05vIEFwbGljYTtTw60NCsK/VGVuZW1vcyBzZWRlIGVuIEp1bGlhY2E/O1PDrTtObztUYWwgVmV6O05vIEFwbGljYTtObw0Kwr9RdcOpIG1hcmNhIG9mcmVjZSBsZW50ZXMgY29uIHRlY25vbG9nw61hIGphcG9uZXNhPztFU1NJTE9SO0hPWUE7U1RPQ0s7Q09OVkVOQ0lPTkFMO0hPWUENCsK/RW4gcXXDqSBhw7FvIHNlIGZ1bmTDsyBUUklNQVg/OzIwMDA7MjAwNTsyMDA0OzIwMDY7MjAwNQ0Kwr9FbiBxdcOpIGRpc3RyaXRvIHNlIGVuY3VlbnRyYSBsYSBvZmljaW5hIHByaW5jaXBhbCBkZSBUUklNQVg/O0JyZcOxYTtMaW5jZTtOYXBvO1NhbiBJc2lkcm87QnJlw7FhDQrCv0N1w6FsIGVzIGVsIHByb3DDs3NpdG8gZGUgVFJJTUFYPztTZXIgbMOtZGVyIGVuIHZlbnRhcyBkZSBtb250dXJhcztNZWpvcmFyIGxhIGNhbGlkYWQgZGUgdmlkYSBkZSBsYXMgcGVyc29uYXM7Q3JlYXIgbGEgbWF5b3IgcmVkIGRlIMOzcHRpY2FzIGVuIGVsIFBlcsO6O1JlZHVjaXIgbGEgcm90YWNpw7NuIGRlIHBlcnNvbmFsO01lam9yYXIgbGEgY2FsaWRhZCBkZSB2aWRhIGRlIGxhcyBwZXJzb25hcw0KTG9zIHZhbG9yZXMgY29ycG9yYXRpdm9zIGRlIFRSSU1BWCBzb246O0ludGVncmlkYWQg4oCTIFRyYWJham8gZW4gZXF1aXBvIOKAkyBDdWx0dXJhIGRlIGxhIGNhbGlkYWQ7SW50ZWdyaWRhZDtSZXNwb25zYWJpbGlkYWQ7VHJhYmFqbyBkdXJvIOKAkyBSZXN1bHRhZG9zIOKAkyBFc3RyYXRlZ2lhO0ludGVncmlkYWQg4oCTIFRyYWJham8gZW4gZXF1aXBvIOKAkyBDdWx0dXJhIGRlIGxhIGNhbGlkYWQNCsK/UXXDqSBub3JtYSBpbnRlcm5hY2lvbmFsIGNlcnRpZmljYSBlbCBTaXN0ZW1hIGRlIEdlc3Rpw7NuIGRlIENhbGlkYWQgZGUgVFJJTUFYPztJU08gOTAwMToyMDE1O0lTTyAzNzAwMTtJU08gNDUwMDE7SVNPIDIwMDA7SVNPIDkwMDE6MjAxNQ0Kwr9Ew7NuZGUgcHVlZGVzIHJlY2VwY2lvbmFyIHkgdmVyaWZpY2FyIHR1IGJvbGV0YSBkZSBGRE0geSBlbiBjdcAhbnRvcyBkw61hcyBow6FiaWxlcyBzZSBlbnbDrWEgZGVzcHXDqXMgZGUgdHUgcGFnbz87RW4gdHUgV2hhdHNBcHA7RW4gdHUgV2hhdHNBcHAsIGRlbnRybyBkZSAzMCBkw61hcyBow6FiaWxlcztFbiB0dSBjb3JyZW8gZWxlY3Ryw7NuaWNvIHBlcnNvbmFsLCBkZW50cm8gZGUgNSBkw61hcyBow6FiaWxlcztFbiB0dSBjb3JyZW8gZWxlY3Ryw7NuaWNvIHBlcnNvbmFsLCBkZW50cm8gZGUgMzAgZMOtYXMgaMOhYmlsZXM7RW4gdHUgY29ycmVvIGVsZWN0csOzbmljbyBwZXJzb25hbCwgZGVudHJvIGRlIDUgZMOtYXMgaMOhYmlsZXMNCsK/UXXDqSBwb3JjZW50YWplIGRlIGxhIHJlbXVuZXJhY2nDs24gc2UgZGVwb3NpdGEgZW4gbGEgcXVpbmNlbmE/OzUwJTs0MiU7MjUlOzc1JTs0MiUNCsK/Q3XDoWwgZXMgZWwgdGllbXBvIG3DrW5pbW8gZGUgcGVybWFuZW5jaWEgZW4gVFJJTUFYIHF1ZSBkZWJlIGN1bXBsaXIgdW4gdHJhYmFqYWRvciBwYXJhIHBvZGVyIGFjY2VkZXIgYSBsb3MgY3Vyc29zIGRlIGNhcGFjaXRhY2nDs24gZW4gU0VOQVRJPzszIG1lc2VzO0Rlc2RlIGVsIDEuZXIgZMOtYTsxIGHDsW87NiBtZXNlczszIG1lc2VzDQrCv0Rlc3B1w6lzIGRlIGN1w6FudG8gdGllbXBvIGRlIHBlcm1hbmVuY2lhIGVuIGxhIGVtcHJlc2EgcHVlZG8gc29saWNpdGFyIHVuYSBjb3J0ZXPDrWEgZ3JhdHVpdGEgZW4gY3VhbHF1aWVyIHRlY25vbG9nw61hPzsxIGHDsW87MiBhw7FvczsxIG1lczszIG1lc2VzOzIgYcOxb3MNCsK/Q3XDoWwgZGUgbG9zIHNpZ3VpZW50ZXMgdGlwb3MgZGUgcmFkaWFjacOzbiBlcyBsYSBxdWUgbcOhcyBwdWVkZSBnZW5lcmFyIGVuZmVybWVkYWRlcyBlbiBlbCBvam8/O1JhZGlhY2nDs24gdWx0cmF2aW9sZXRhIChVVkEpO1JhZGlhY2nDs24gZGUgbWljcm9vbmRhcztSYWRpYWNpw7NuIG5hdHVyYWw7THV6IGRlIGNlbHVsYXI7UmFkaWFjacOzbiB1bHRyYXZpb2xldGEgKFVWQSkNCsK/Q3XDoWxlcyBzb24gbG9zIGRvcyBwcmluY2lwYWxlcyB0aXBvcyBkZSB0cmF0YW1pZW50b3MgYW50aXJyZWZsZWphbnRlcyBxdWUgc2UgYXBsaWNhbiBlbiBsb3MgbGVudGVzIGVuIFRSSU1BWD87Q1ItMzkgeSBwb2xpY2FyYm9uYXRvO0ZvdG9zZW5zaWJsZSB5IHBvbGFyaXphZG87UHJvZ3Jlc2l2byB5IG9jdXBhY2lvbmFsO0FudGlycmVmbGVqbyBOb3ggeSBBbnRpcnJlZmxlam8gRGV2YUJsdWU7QW50aXJyZWZsZWpvIE5veCB5IEFudGlycmVmbGVqbyBEZXZhQmx1ZQ0KTm8gZXMgdW5hIHNlZGUgZGUgVFJJTUFYO0F5YWN1Y2hvO0xpbmNlO0h1YW5jYXlvO0FtYXpvbmFzO0FtYXpvbmFzDQpObyBlcyB1bmEgc2VkZSBkZSBUUklNQVg7TWlyYWZsb3JlcztDYWlsbG9tYTtMb3MgT2xpdm9zO1NKTTtNaXJhZmxvcmVzDQpObyBlcyB1bmEgc2VkZSBkZSBUUklNQVg7U3VyY287TGluY2U7QXJlcXVpcGE7U0pMO1N1cmNvDQpObyBlcyB1bmEgc2VkZSBkZSBUUklNQVg7Q3VzY287TmFwbztDYWxsYW87U0pNO0NhbGxhbw0KTm8gZXMgdW5hIHNlZGUgZGUgVFJJTUFYO0plc8O6cyBNYXLDrWE7VHJ1amlsbG87Q3VzY287TmFwbztKZXPDunMgTWFyw61hDQpObyBlcyB1bmEgbWFyY2EgZGUgbW9udHVyYXMgZGUgbGEgY2FydGVyYSBkZSBUUklNQVg7QWRpZGFzO0ZpbGE7VG91cztMYWNvc3RlO0xhY29zdGUNCsK/TnVlc3RyYXMgbW9udHVyYXMgc29uIGRlIHByb2NlZGVuY2lhIGludGVybmFjaW9uYWw/O1PDrTtObztUYWwgVmV6O05vIEFwbGljYTtTw60NCk5vIGVzIHVuYSBtYXJjYSBkZSBtb250dXJhcyBkZSBsYSBjYXJ0ZXJhIGRlIFRSSU1BWDtBZGlkYXM7UG9saWNlO1RpbWJlcmxhbmQ7T2FrbGV5O09ha2xleQ0Kwr9UUklNQVggY29tZXJjaWFsaXphIG1vbnR1cmFzIHNvbGFyZXMgeSBvZnTDoWxtaWNhcz87U8OtO05vO1RhbCBWZXo7Tm8gQXBsaWNhO1PDrQ0Kwr9FbiBxdcOpIG1lcyBjZWxlYnJhbW9zIGVsIGFuaXZlcnNhcmlvIGRlIFRSSU1BWD87T2N0dWJyZTtTZXRpZW1icmU7Tm92aWVtYnJlO0RpY2llbWJyZTtPY3R1YnJlDQrCv1F1w6kgw6FyZWEgc2UgZW5jYXJnYSBkZSBsYSBmYWJyaWNhY2nDs24geSBtb250YWplIGRlIGxlbnRlcz87UHJvZHVjY2nDs247Q29tZXJjaWFsO0ZpbmFuemFzO0F1ZGl0b3LDrWE7UHJvZHVjY2nDs24NCsK/Q3XDoWwgZXMgbnVlc3RyYSBzZWRlIHViaWNhZGEgZW4gbGEgc2VsdmE/O0lxdWl0b3M7TGluY2U7SHVhbmNheW87Q2hpbWJvdGU7SXF1aXRvcw0Kwr9RdcOpIHNlZGUgc2UgZW5jYXJnYSBkZSBsYSBhdGVuY2nDs24gdGVsZWbDs25pY2EgbmFjaW9uYWw/O0NoaW1ib3RlO0NhbGwgQ2VudGVyO0xpbmNlO1NKTDtDYWxsIENlbnRlcg0Kwr9RdcOpIHNpc3RlbWEgY29udHJvbGEgbGFzIMOzcmRlbmVzIGRpYXJpYXMgZGUgZmFicmljYWNpw7NuPzvDk1BUSUNPO0VSUDtCQUNHUk9VUDtDRFArO8OTUFRJQ08NCsK/UXXDqSBiZW5lZmljaW8gYnJpbmRhIGVsIHRyYXRhbWllbnRvIGFudGlycmVmbGVqYW50ZT87TmluZ3VubztFbGltaW5hIHJlZmxlam9zIHkgbWVqb3JhIGxhIG5pdGlkZXogdmlzdWFsO0F1bWVudGEgZWwgcGVzbyBkZWwgbGVudGU7Q2FtYmlhIGVsIGNvbG9yIGRlbCBsZW50ZTtFbGltaW5hIHJlZmxlam9zIHkgbWVqb3JhIGxhIG5pdGlkZXogdmlzdWFsDQrCv1RSSU1BWCBicmluZGEgZWwgc2VydmljaW8gZGUgY29sb3JlYWRvIGRlIGxlbnRlcz87U8OtO05vO1RhbCBWZXo7Tm8gQXBsaWNhO1PDrQ0Kwr9UUklNQVggYnJpbmRhIGVsIHNlcnZpY2lvIGRlIGJpc2VsYWRvIGRlIGxlbnRlcz87U8OtO05vO1RhbCBWZXo7Tm8gQXBsaWNhO1PDrQ0Kwr9Mb3MgdHJhYmFqYWRvcmVzIGRlIFRSSU1BWCBwdWVkZW4gYWNjZWRlciBhbCBkZXNjdWVudG8gcG9yIHBsYW5pbGxhIHkgZW4gY3VvdGFzIHBhcmEgY29tcHJhciBzdXMgbHVuYXMgeSBtb250dXJhcz87U8OtO05vO1RhbCBWZXo7Tm8gQXBsaWNhO1PDrQ0K`;
+
+/* ===== Estado ===== */
+let ALL_QUESTIONS = [];
+let QUESTIONS = [];
+let idx=0, timer=null, tLeft=TIME_PER_Q, points=0, picked=null;
+const answers=[];
+const firma = document.getElementById('firma');
+let questionsReady = false;
+
+/* ===== Música ===== */
+const bgm = document.getElementById("bgm");
+bgm.volume = 0.45;
+function safePlay(){ bgm.play().catch(()=>{}); }
+document.addEventListener("click", safePlay, {once:true});
+
+/* ===== Búho ping-pong ===== */
+const mascot = document.getElementById('mascot');
+let dir = -1; // empieza hacia la izquierda
+let x = 0;
+function tickMascot(){
+  const wrap = document.querySelector('.wrap');
+  const max = Math.max(0, wrap.clientWidth - mascot.clientWidth - 56 - 56); // márgenes laterales
+  const step = 1.2; // velocidad
+  x += dir*step;
+  if (x <= -max){ dir = 1; mascot.style.setProperty('--dir', -1); }     // voltea
+  if (x >= 0){ dir = -1; mascot.style.setProperty('--dir', 1); }        // voltea
+  mascot.style.setProperty('--x', `${x}px`);
+  requestAnimationFrame(tickMascot);
+}
+mascot.classList.add('walking');
+requestAnimationFrame(tickMascot);
+
+/* ===== Utilidades CSV ===== */
+function detectDelimiter(text){
+  const first = (text.split(/\r?\n/)[0]||"");
+  const counts = { ",":(first.match(/,/g)||[]).length, ";":(first.match(/;/g)||[]).length, "\t":(first.match(/\t/g)||[]).length };
+  return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+}
+function parseCSV(text){
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // BOM
+  const d = detectDelimiter(text);
+  if (d === "\t") return text.split(/\r?\n/).filter(l=>l.trim().length).map(l=>l.split("\t").map(c=>c.trim()));
+  const rows = []; let i=0,f="",row=[],q=false;
+  while(i<text.length){
+    const ch=text[i];
+    if(q){ if(ch=='"'){ if(text[i+1]=='"'){f+='"';i++;} else q=false; } else f+=ch; }
+    else{ if(ch=='"') q=true;
+      else if(ch===d){ row.push(f.trim()); f=""; }
+      else if(ch=='\r'){}
+      else if(ch=='\n'){ row.push(f.trim()); f=""; if(row.length) rows.push(row); row=[]; }
+      else f+=ch;
+    } i++;
+  }
+  if (f.length||row.length){ row.push(f.trim()); rows.push(row); }
+  return rows;
+}
+function mapRowsToQuestions(rows){
+  if (!rows.length) throw new Error("CSV incrustado vacío.");
+  const header = rows[0].map(h => (h||"").toLowerCase().trim());
+  const need = ['preguntas','pregunta','a','b','c','d','correcta'];
+  const have = key => header.includes(key);
+  if (!(have('pregunta')||have('preguntas')) || !have('a')||!have('b')||!have('c')||!have('d')||!have('correcta'))
+    throw new Error("Encabezados requeridos: Pregunta, A, B, C, D, Correcta.");
+
+  const idx = {
+    pregunta: header.indexOf(have('pregunta')?'pregunta':'preguntas'),
+    a: header.indexOf('a'), b: header.indexOf('b'),
+    c: header.indexOf('c'), d: header.indexOf('d'),
+    correcta: header.indexOf('correcta'),
+  };
+
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row||row.every(c=>!c)) continue;
+    const q=row[idx.pregunta], a=row[idx.a], b=row[idx.b], c=row[idx.c], d=row[idx.d], corr=(row[idx.correcta]||"").trim();
+    if(!q||!a||!b||!c||!d||!corr) continue;
+    const options=[a,b,c,d]; let correct=({A:0,B:1,C:2,D:3})[corr.toUpperCase()];
+    if (correct==null && /^\d+$/.test(corr)){ const n=+corr; if(n>=1&&n<=4) correct=n-1; }
+    if (correct==null){ const ix=options.findIndex(o=>(o||"").trim().toLowerCase()===corr.toLowerCase()); if(ix!==-1) correct=ix; }
+    if (correct==null) continue;
+    out.push({ q, options, correct });
+  }
+  if (!out.length) throw new Error("No se pudieron mapear preguntas.");
+  return out;
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function shuffleQuestionOptions(q){ const order=[0,1,2,3]; shuffle(order); const options=order.map(i=>q.options[i]); const correct=order.indexOf(q.correct); return { q:q.q, options, correct }; }
+function pickRandomQuestions(all,n=5){ const pool=all.slice(); shuffle(pool); return pool.slice(0,Math.min(n,pool.length)).map(shuffleQuestionOptions); }
+
+/* ===== Carga incrustada ===== */
+async function loadEmbedded(){
+  const bin = atob(EMBEDDED_BASE64);
+  const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  const csv = new TextDecoder("utf-8").decode(bytes);
+  const rows = parseCSV(csv);
+  return mapRowsToQuestions(rows);
+}
+
+/* ===== Generador de un ID único por intento ===== */
+function makeAttemptId(){
+  const pad = (n,s=2)=>String(n).padStart(s,'0');
+  const d = new Date();
+  const rand = Math.floor(Math.random()*0xFFFF).toString(16).padStart(4,'0');
+  return `TRX-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${rand}`;
+}
+
+/* ===== Funcion para generar cupón (si aplica) ===== */
+function generateCoupon(){
+  const pad=(n,s=2)=>String(n).padStart(s,'0');
+  const d=new Date();
+  const code=`TRX-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${pad(Math.floor(Math.random()*10000),4)}`;
+  const used = JSON.parse(localStorage.getItem('usedCoupons')||'[]');
+  if(used.includes(code)) return generateCoupon();
+  used.push(code); localStorage.setItem('usedCoupons', JSON.stringify(used));
+  return code;
+}
+
+/* ===== Función para enviar datos al sheet (form-urlencoded) ===== */
+async function sendToSheet(payload){
+  try{
+    const body = new URLSearchParams();
+    for (const k in payload){
+      if (!payload.hasOwnProperty(k)) continue;
+      const v = (payload[k] !== null && typeof payload[k] === 'object') ? JSON.stringify(payload[k]) : String(payload[k]||'');
+      body.append(k, v);
+    }
+    const res = await fetch(SHEET_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: body.toString(),
+    });
+    const text = await res.text();
+    console.log('sendToSheet response:', res.status, text, payload);
+  }catch(err){
+    console.error('sendToSheet error:', err, payload);
+  }
+}
+
+/* ===== Juego ===== */
+const startBtn   = document.getElementById("startBtn");
+const inpNombre  = document.getElementById("inpNombre");
+const inpDni     = document.getElementById("inpDni");
+const selSede    = document.getElementById("selSede");
+const hud        = document.getElementById("hud");
+const playerTag  = document.getElementById("playerTag");
+const timerEl    = document.getElementById("timer");
+const bar        = document.getElementById("bar");
+const secs       = document.getElementById("secs");
+const counter    = document.getElementById("counter");
+const pointsEl   = document.getElementById("points");
+const stage      = document.getElementById("stage");
+const qEl        = document.getElementById("q");
+const optsEl     = document.getElementById("opts");
+const btn        = document.getElementById("answerBtn");
+const results    = document.getElementById("results");
+const review     = document.getElementById("review");
+const finalScore = document.getElementById("finalScore");
+const resultTitle= document.getElementById("resultTitle");
+const resultSub  = document.getElementById("resultSub");
+const couponBox  = document.getElementById("couponBox");
+const couponCodeEl = document.getElementById("couponCode");
+const exitBtn    = document.getElementById("exitBtn");
+
+let currentAttemptId = ''; // ID único por intento
+
+startBtn.addEventListener("click", async ()=>{
+  const nombre=(inpNombre.value||"").trim();
+  const dni=(inpDni.value||"").trim();
+  const sede=selSede.value;
+  if(!nombre || !dni || !sede){ alert("Completa Nombre y Apellido, DNI y Sede para empezar."); return; }
+  safePlay();
+
+  try{
+    if(!questionsReady){ ALL_QUESTIONS = await loadEmbedded(); questionsReady = true; }
+  }catch(err){
+    console.error(err);
+    alert("Error leyendo preguntas incrustadas: " + err.message);
+    return;
+  }
+
+  playerTag.textContent = `${nombre} · DNI ${dni} · ${sede}`;
+  document.getElementById("cover").classList.add("hidden");
+  hud.classList.remove("hidden");
+  timerEl.classList.remove("hidden");
+  stage.classList.remove("hidden");
+
+  // Generar nuevo ID único para este intento
+  currentAttemptId = makeAttemptId();
+
+  // --- Enviar evento START al sheet (con el ID del intento) ---
+  try {
+    sendToSheet({
+      evento: 'start',
+      id: currentAttemptId,
+      nombre: nombre,
+      dni: dni,
+      sede: sede,
+      fecha: new Date().toISOString()
+    });
+  } catch(e) { console.error('send start failed', e); }
+
+  start();
+});
+
+function start(){
+  QUESTIONS = pickRandomQuestions(ALL_QUESTIONS, 5);
+  idx=0; points=0; answers.length=0; pointsEl.textContent=points;
+  results.classList.add("hidden"); exitBtn.classList.add("hidden");
+  firma.style.display = "none";
+  nextQuestion();
+}
+function nextQuestion(){
+  if (idx >= QUESTIONS.length) return finish();
+  const {q, options} = QUESTIONS[idx];
+  counter.textContent = `Pregunta ${idx+1} de ${QUESTIONS.length}`;
+  qEl.textContent = q; optsEl.innerHTML=""; btn.disabled=true; picked=null;
+  options.forEach((text,i)=>{
+    const label=document.createElement("label");
+    label.className="opt";
+    label.innerHTML=`<input type="radio" name="opt" value="${i}" /><span>${text}</span>`;
+    label.querySelector("input").addEventListener("change",e=>{ picked=+e.target.value; btn.disabled=false; });
+    optsEl.appendChild(label);
+  });
+  startTimer();
+}
+function startTimer(){
+  clearInterval(timer); tLeft=TIME_PER_Q; secs.textContent=tLeft; bar.style.transform="scaleX(1)";
+  timer=setInterval(()=>{ tLeft--; secs.textContent=tLeft; bar.style.transform=`scaleX(${tLeft/TIME_PER_Q})`;
+    if(tLeft<=0){ clearInterval(timer); if(picked!==null) gradeAndGo(); else skipAndGo(); }
+  },1000);
+}
+btn.addEventListener("click", ()=>{ if(picked===null) return; clearInterval(timer); gradeAndGo(); });
+function gradeAndGo(){
+  const qObj=QUESTIONS[idx]; const ok=(picked===qObj.correct);
+  if(ok) points+=POINTS_PER_OK; pointsEl.textContent=points;
+  answers.push({question:qObj.q, pickedText:qObj.options[picked], correctText:qObj.options[qObj.correct], ok});
+  idx++; nextQuestion();
+}
+function skipAndGo(){
+  const qObj=QUESTIONS[idx];
+  answers.push({question:qObj.q, pickedText:"Sin respuesta", correctText:qObj.options[qObj.correct], ok:false});
+  idx++; nextQuestion();
+}
+function finish(){
+  clearInterval(timer);
+  stage.classList.add("hidden");
+  results.classList.remove("hidden");
+  finalScore.textContent = points; review.innerHTML = "";
+  answers.forEach((a,i)=>{
+    const li=document.createElement("li");
+    li.className=`it ${a.ok?"ok":"bad"}`;
+    li.innerHTML=`<div><strong>${i+1}. ${a.question}</strong><span class="tag ${a.ok?"":"bad"}">${a.ok?"Correcta":"Incorrecta"}</span></div>
+                  <div class="mut">Tu respuesta: ${a.pickedText}</div>
+                  <div class="mut">Respuesta correcta: ${a.correctText}</div>`;
+    review.appendChild(li);
+  });
+  const has20 = points>=20, has16 = (!has20 && points>=16);
+  // Mostrar siempre el cuadro de cupón en resultados; si no ganó, mostrar "SIN CUPON"
+  couponBox.classList.remove("hidden");
+  let cuponTxt = 'SIN CUPON';
+  if(has20 || has16){
+    cuponTxt = generateCoupon();
+    resultTitle.textContent = `¡Felicidades!`;
+    resultSub.textContent   = `Has obtenido: ${has20 ? "🏆 20% en Montura Internacional" : "🎖️ 15% de Descuento"}. Presenta tu cupón único en caja para validar el beneficio.`;
+  } else {
+    resultTitle.textContent = `¡Gran esfuerzo!`;
+    resultSub.textContent   = `Sigue participando: cada intento potencia tus resultados.`;
+  }
+  couponCodeEl.textContent = cuponTxt;
+
+  // --- Enviar evento FINISH al sheet (con puntaje y cupon o SIN CUPON) ---
+  try {
+    sendToSheet({
+      evento: 'finish',
+      id: currentAttemptId,
+      nombre: (inpNombre.value||'').trim(),
+      dni: (inpDni.value||'').trim(),
+      sede: (selSede.value||''),
+      puntaje: points,
+      cupon: cuponTxt,
+      fecha: new Date().toISOString()
+    });
+  } catch(e) { console.error('send finish failed', e); }
+
+  // Mostrar el botón SALIR (en lugar de reiniciar)
+  exitBtn.classList.remove("hidden");
+  firma.style.display = "block"; // mostrar firma
+}
+
+/* ===== Botón SALIR: vuelve a pantalla principal y limpia todo ===== */
+exitBtn.addEventListener("click", ()=>{
+  // Ocultar resultados y firma
+  results.classList.add("hidden");
+  firma.style.display = "none";
+
+  // Mostrar portada / formulario inicial
+  document.getElementById("cover").classList.remove("hidden");
+
+  // Reset HUD / stage / timer / state
+  hud.classList.add("hidden");
+  stage.classList.add("hidden");
+  timerEl.classList.add("hidden");
+  clearInterval(timer);
+
+  // Limpiar inputs y etiquetas
+  inpNombre.value = '';
+  inpDni.value = '';
+  selSede.selectedIndex = 0;
+  playerTag.textContent = '';
+  points = 0;
+  pointsEl.textContent = points;
+  finalScore.textContent = '0';
+  review.innerHTML = '';
+  couponBox.classList.add("hidden");
+  couponCodeEl.textContent = 'TRX-...';
+
+  // Ocultar botón Salir de nuevo
+  exitBtn.classList.add("hidden");
+
+  // Resetear ID del intento (si quieres mantenerlo, quita esto)
+  currentAttemptId = '';
+
+  // Scroll to top / enfoque
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* Si quieres que al cerrar la pestaña o recargar se borre el attempt id, opcional:
+window.addEventListener('beforeunload', ()=> { currentAttemptId = ''; });
+*/
+
+</script>
+</body>
+</html>
+
+
+
