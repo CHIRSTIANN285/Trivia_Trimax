@@ -104,6 +104,14 @@
     display:none; /* se muestra sólo al finalizar */
     z-index:5;
   }
+
+  /* ===== NUEVO: Reglas y Términos ===== */
+  .rules{
+    margin-top:10px; padding:12px; font-size:12px; color:var(--muted);
+    background:#0b1220; border:1px solid rgba(255,255,255,.08); border-radius:12px;
+  }
+  .rules ul{ margin:6px 0 0; padding-left:18px }
+  .terms{ margin-top:10px; font-size:12px; color:#374151; background:#0b1220; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:10px 12px; }
 </style>
 </head>
 <body>
@@ -145,12 +153,23 @@
       </div>
 
       <div class="prizes">
-        <article class="prize"><span class="badge">Meta</span><h3>🏆 20% en Montura Internacional</h3><div class="req">Se obtiene con <b>20 puntos</b>.</div></article>
-        <article class="prize"><span class="badge">Meta</span><h3>🎖️ 15% de Descuento</h3><div class="req">Se obtiene con <b>16 puntos</b>.</div></article>
+        <article class="prize"><span class="badge">Meta</span><h3>🏆 25% DSCT en Lunas o Monturas</h3><div class="req">Se obtiene con <b>20 puntos</b>.</div></article>
+        <article class="prize"><span class="badge">Meta</span><h3>🎖️ 15% DSCT en Lunas o Monturas</h3><div class="req">Se obtiene con <b>16 puntos</b>.</div></article>
       </div>
 
       <div class="cta"><button id="startBtn" class="btn">EMPEZAR TRIVIA TRIMAX</button></div>
       <div class="hint">Cada acierto suma 4 puntos. Son 5 preguntas · 15 segundos cada una.</div>
+
+      <!-- NUEVO: Reglas del juego (debajo del registro) -->
+      <div class="rules">
+        <strong>Reglas del juego</strong>
+        <ul>
+          <li>Solo se registra el primer intento del trabajor de Trimax y los datos se envian automaticamente al área comercial, cualquier otro intento ya no será valido.</li>
+          <li>De ganar el cupón de descuento, el plazo para el canje es hasta el 15 de noviembre del 2025.</li>
+          <li>El cupón es válido para ser utilizado una sola vez por el trabajador, un amigo o un familiar. El trabajador deberá comunicar al área comercial el nombre del beneficiario antes de su uso.</li>
+          <li>Personal administrativo, personal de sede central, colocar Sede Napo</li>
+        </ul>
+      </div>
     </section>
 
     <section id="hud" class="row hidden" aria-live="polite">
@@ -178,6 +197,18 @@
         <div id="couponBox" class="coupon hidden">
           <div class="label">CUPÓN:</div>
           <div id="couponCode" class="code">TRX-...</div>
+        </div>
+
+        <!-- NUEVO: Condiciones de canje (debajo del cupón) -->
+        <div id="couponTerms" class="terms">
+          <strong>Condiciones de canje</strong>
+          <ul style="margin:6px 0 0; padding-left:18px;">
+            <li>Puedes tomar captura de tu cupón. Los datos fueron enviados automaticamente al área comercial y solo es válido el primer intento.</li>
+            <li>Coordina tu compra con el area comercial. Uso personal, amigos y familiares. Un cupón por compra.</li>
+            <li>Aplica sobre Lunas y Monturas. No acumulable con otras promociones.</li>
+            <li>No aplica sobre servicios, paquetes o productos ya rebajados.</li>
+            <li>Vigencia: hasta el 15 de Noviembre del 2025.</li>
+          </ul>
         </div>
       </div>
       <div class="score"><strong>Puntaje:</strong> <span id="finalScore">0</span> puntos de 20.</div>
@@ -379,6 +410,7 @@ const resultSub  = document.getElementById("resultSub");
 const couponBox  = document.getElementById("couponBox");
 const couponCodeEl = document.getElementById("couponCode");
 const exitBtn    = document.getElementById("exitBtn");
+const couponDeadlineEl = document.getElementById("couponDeadline");
 
 let currentAttemptId = ''; // ID único por intento
 
@@ -480,12 +512,20 @@ function finish(){
   if(has20 || has16){
     cuponTxt = generateCoupon();
     resultTitle.textContent = `¡Felicidades!`;
-    resultSub.textContent   = `Has obtenido: ${has20 ? "🏆 20% en Montura Internacional" : "🎖️ 15% de Descuento"}. Presenta tu cupón único en caja para validar el beneficio.`;
+    resultSub.textContent   = `Has obtenido: ${has20 ? "🏆 25% DSCT en Lunas o Monturas" : "🎖️ 15% DSCT en Lunas o Monturas"}. Presenta tu cupón único al área comercial hasta el 15 de noviembre del 2025.`;
   } else {
     resultTitle.textContent = `¡Gran esfuerzo!`;
-    resultSub.textContent   = `Sigue participando: cada intento potencia tus resultados.`;
+    resultSub.textContent   = `Gracias por participar. Nos vemos en la siguiente edición de la trivia TRIMAX`;
   }
   couponCodeEl.textContent = cuponTxt;
+
+  /* NUEVO: calcular plazo de canje (30 días desde emisión) */
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  if (couponDeadlineEl) couponDeadlineEl.textContent = `${dd}/${mm}/${yyyy}`;
 
   // --- Enviar evento FINISH al sheet (con puntaje y cupon o SIN CUPON) ---
   try {
@@ -532,24 +572,22 @@ exitBtn.addEventListener("click", ()=>{
   review.innerHTML = '';
   couponBox.classList.add("hidden");
   couponCodeEl.textContent = 'TRX-...';
+  if (couponDeadlineEl) couponDeadlineEl.textContent = '—';
 
   // Ocultar botón Salir de nuevo
   exitBtn.classList.add("hidden");
 
-  // Resetear ID del intento (si quieres mantenerlo, quita esto)
+  // Resetear ID del intento
   currentAttemptId = '';
 
-  // Scroll to top / enfoque
+  // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 });
-
-/* Si quieres que al cerrar la pestaña o recargar se borre el attempt id, opcional:
-window.addEventListener('beforeunload', ()=> { currentAttemptId = ''; });
-*/
-
 </script>
 </body>
 </html>
+
+
 
 
 
